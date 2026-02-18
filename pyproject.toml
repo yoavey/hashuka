@@ -1,0 +1,13 @@
+[project]
+name = "hashuka"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "faker>=40.4.0",
+    "flask>=3.1.2",
+    "flask-bcrypt>=1.0.1",
+    "flask-sqlalchemy>=3.1.1",
+    "pymysql>=1.1.2",
+]
