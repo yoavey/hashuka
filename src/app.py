@@ -1,6 +1,7 @@
 from flask import Flask, redirect, url_for, render_template, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
+from flask_login import LoginManager, login_user, login_required, logout_user, current_user, UserMixin
 import re
 from faker import Faker
 
@@ -9,10 +10,16 @@ fake = Faker()
 app = Flask(__name__)
 bcrypt = Bcrypt(app)
 
+app.config['SECRET_KEY'] = "Secret-key-123_i7"
+
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:@localhost:3306/hashuka'
 db = SQLAlchemy(app)
 
-class Users (db.Model):
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = "signin"  # redirect when not logged in
+
+class Users (UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
@@ -31,7 +38,6 @@ def seed(count=10):
         
          db.session.commit()
  print(f'Added {count} dummy users to the database.')
-
 
 def validate_user_details(name, email, phone_number, password, confirm_password):
     errors = []
@@ -74,20 +80,30 @@ def register_user(name, email, phone_number, password, confirm_password):
                           phone_number=phone_number,
                           password_hash=bcrypt.generate_password_hash(password).decode()))
     db.session.commit()
-    return f"new user registered: <b>{name}</b>"
+    login_user(Users.query.filter_by(email=request.form.get('email')).first(), remember=True)
+    return redirect(url_for("home"))
     
+@login_manager.user_loader
+def load_user(user_id):
+    return Users.query.get(int(user_id))
 
+@app.route("/logout")
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for("signin"))
  
 @app.route("/")
 def index():
-    return redirect(url_for('signin'))
+    return redirect(url_for('home'))
 
 @app.route("/signin", methods = ['GET', 'POST'])
 def signin():
     if request.method == 'POST':    # handle sign-in request
         user = Users.query.filter_by(email=request.form.get('email')).first()
         if user and bcrypt.check_password_hash(user.password_hash, request.form.get('password')):
-            return "<h>suceassfuly signed in </h1>"
+            login_user(user, remember=True)
+            return redirect(url_for("home"))
         return render_template('signin.html', error="Invalid email or password.")
     return render_template("signin.html")
 
@@ -104,6 +120,11 @@ def signup():
 @app.route("/forgot_password")
 def forgot_password():
     return "tbd"
+
+@app.route("/home")
+@login_required
+def home():
+    return f"Hello <b>{current_user.name}</b>!"
 
 
 if __name__ == "__main__":
