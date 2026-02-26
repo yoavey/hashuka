@@ -12,6 +12,9 @@ bcrypt = Bcrypt(app)
 
 app.config['SECRET_KEY'] = "Secret-key-123_i7"
 
+app.config["SESSION_COOKIE_HTTPONLY"] = True    # defends from xss
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"   # defends from csrf
+
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:@localhost:3306/hashuka'
 db = SQLAlchemy(app)
 
